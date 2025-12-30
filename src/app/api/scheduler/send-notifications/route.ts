@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendEmail, generateStudentEmailHTML, generateMentorEmailHTML } from '@/lib/email'
 
-// This endpoint is called every hour (via Vercel Cron) to send notifications
-// 10 hours before each class
+// This endpoint is called daily at 6:05 AM IST (via Vercel Cron) to send notifications
+// for ALL classes happening today
 
 export async function POST(request: Request) {
   try {
@@ -26,12 +26,14 @@ export async function POST(request: Request) {
       process.env.SUPABASE_SERVICE_ROLE_KEY_B!
     )
 
-    // Calculate target time window (sessions starting in 9.5 to 10.5 hours)
+    // Get today's date in IST (UTC+5:30)
     const now = new Date()
-    const notifyWindowStart = new Date(now.getTime() + 9.5 * 60 * 60 * 1000)
-    const notifyWindowEnd = new Date(now.getTime() + 10.5 * 60 * 60 * 1000)
+    // Convert to IST by adding 5 hours 30 minutes
+    const istOffset = 5.5 * 60 * 60 * 1000
+    const istNow = new Date(now.getTime() + istOffset)
+    const todayIST = istNow.toISOString().split('T')[0]
 
-    console.log(`Looking for sessions between ${notifyWindowStart.toISOString()} and ${notifyWindowEnd.toISOString()}`)
+    console.log(`Sending notifications for all classes on ${todayIST} (IST)`)
 
     // Fetch all mentors for lookup
     const { data: allMentors } = await supabaseB
@@ -100,15 +102,11 @@ export async function POST(request: Request) {
       try {
         const [cohortType, cohortNumber] = cohortKey.split(' ')
 
-        // Get today's date in YYYY-MM-DD format
-        const targetDate = notifyWindowStart.toISOString().split('T')[0]
-
-        // Fetch sessions for the target date
+        // Fetch all sessions for today
         const { data: sessions, error: fetchError } = await supabaseB
           .from(tableName)
           .select('*')
-          .eq('date', targetDate)
-          .not('teams_meeting_link', 'is', null)
+          .eq('date', todayIST)
 
         if (fetchError) {
           console.log(`Skipping ${tableName}: ${fetchError.message}`)
@@ -119,24 +117,20 @@ export async function POST(request: Request) {
           continue
         }
 
-        // Check each session's time
+        // Process each session for today
         for (const session of sessions) {
-          if (!session.time || !session.teams_meeting_link) continue
-
-          // Parse session datetime
-          const sessionDateTime = new Date(`${session.date}T${session.time}`)
+          // Skip if no time set or already notified
+          if (!session.time) continue
           
-          // Check if session falls within our notification window
-          if (sessionDateTime >= notifyWindowStart && sessionDateTime <= notifyWindowEnd) {
-            console.log(`Found session to notify: ${tableName}, session ${session.id}`)
+          // Check if we already sent notification (prevent duplicates)
+          if (session.notification_sent) {
+            console.log(`Notification already sent for session ${session.id}`)
+            continue
+          }
 
-            // Check if we already sent notification (prevent duplicates)
-            if (session.notification_sent) {
-              console.log(`Notification already sent for session ${session.id}`)
-              continue
-            }
+          console.log(`Sending notification for: ${tableName}, session ${session.id}, time ${session.time}`)
 
-            // Get students in this cohort
+          // Get students in this cohort
             const { data: students, error: studentsError } = await supabaseMain
               .from('onboarding')
               .select('*')
@@ -239,10 +233,10 @@ export async function POST(request: Request) {
               sessionId: session.id,
               subject: session.subject_name,
               topic: session.subject_topic,
+              time: session.time,
               studentEmailsSent,
               mentorNotified: !!mentorEmail
             })
-          }
         }
 
       } catch (cohortError: any) {
@@ -253,10 +247,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
-      notificationWindow: {
-        start: notifyWindowStart.toISOString(),
-        end: notifyWindowEnd.toISOString()
-      },
+      notificationDate: todayIST,
       totalStudentEmailsSent: totalEmailsSent,
       totalMentorEmailsSent,
       sessionsNotified: results.length,
