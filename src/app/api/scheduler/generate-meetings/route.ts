@@ -40,12 +40,13 @@ async function getAccessToken(): Promise<string> {
   return data.access_token
 }
 
-// Create Teams meeting
+// Create Teams meeting with co-organizer
 async function createTeamsMeeting(
   accessToken: string,
   subject: string,
   startDateTime: string,
-  endDateTime: string
+  endDateTime: string,
+  coOrganizerEmail?: string
 ): Promise<string> {
   const organizerUserId = process.env.MS_ORGANIZER_USER_ID
   if (!organizerUserId) {
@@ -54,31 +55,51 @@ async function createTeamsMeeting(
 
   const url = `${MS_GRAPH_API_URL}/users/${organizerUserId}/onlineMeetings`
 
+  // Build meeting body
+  const meetingBody: any = {
+    startDateTime,
+    endDateTime,
+    subject,
+    lobbyBypassSettings: { 
+      scope: 'everyone',
+      isDialInBypassEnabled: true 
+    },
+    autoAdmittedUsers: 'everyone',
+    allowedPresenters: 'everyone',
+    joinMeetingIdSettings: {
+      isPasscodeRequired: false
+    }
+  }
+
+  // Add co-organizer if email provided
+  if (coOrganizerEmail) {
+    meetingBody.participants = {
+      attendees: [],
+      organizer: {
+        upn: organizerUserId
+      }
+    }
+    // Add mentor as co-organizer via invite
+    meetingBody.participants.attendees.push({
+      upn: coOrganizerEmail,
+      role: 'coOrganizer'
+    })
+    console.log(`Adding co-organizer: ${coOrganizerEmail}`)
+  }
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${accessToken}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({
-      startDateTime,
-      endDateTime,
-      subject,
-      lobbyBypassSettings: { 
-        scope: 'everyone',
-        isDialInBypassEnabled: true 
-      },
-      autoAdmittedUsers: 'everyone',
-      allowedPresenters: 'everyone',
-      // Allow participants to join before organizer
-      joinMeetingIdSettings: {
-        isPasscodeRequired: false
-      }
-    })
+    body: JSON.stringify(meetingBody)
   })
 
   if (!response.ok) {
-    throw new Error(`Failed to create meeting: ${await response.text()}`)
+    const errorText = await response.text()
+    console.error('Meeting creation error:', errorText)
+    throw new Error(`Failed to create meeting: ${errorText}`)
   }
 
   const data = await response.json()
@@ -136,6 +157,21 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL_B!,
       process.env.SUPABASE_SERVICE_ROLE_KEY_B!
     )
+
+    // Fetch all mentors for co-organizer lookup
+    const { data: allMentors } = await supabaseB
+      .from('Mentor Details')
+      .select('mentor_id, Name, "Email address"')
+    
+    const mentorMap = new Map<number, string>()
+    if (allMentors) {
+      for (const mentor of allMentors) {
+        if (mentor['Email address']) {
+          mentorMap.set(mentor.mentor_id, mentor['Email address'])
+        }
+      }
+      console.log(`Loaded ${allMentors.length} mentors for co-organizer assignment`)
+    }
 
     // Get MS Graph access token
     let accessToken: string
@@ -217,12 +253,16 @@ export async function POST(request: Request) {
             startDate.setMinutes(startDate.getMinutes() + 90)
             const endDateTime = startDate.toISOString()
 
-            // Create Teams meeting
+            // Get mentor email for co-organizer
+            const mentorEmail = session.mentor_id ? mentorMap.get(session.mentor_id) : undefined
+            
+            // Create Teams meeting with mentor as co-organizer
             const meetingLink = await createTeamsMeeting(
               accessToken,
               subject,
               new Date(`${session.date}T${sessionTime}`).toISOString(),
-              endDateTime
+              endDateTime,
+              mentorEmail
             )
 
             // Update the session with the meeting link
