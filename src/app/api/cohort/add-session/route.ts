@@ -86,7 +86,8 @@ export async function POST(request: Request) {
         session_recording: session_recording || null,
         mentor_id: mentor_id || null,
         teams_meeting_link: teams_meeting_link || null,
-        notification_sent: false
+        email_sent: false,
+        whatsapp_sent: false
       })
       .select()
       .single()

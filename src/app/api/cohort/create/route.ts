@@ -153,8 +153,10 @@ CREATE TABLE IF NOT EXISTS public.${tableName} (
   session_material TEXT,
   session_recording TEXT,
   mentor_id INTEGER,
+  swapped_mentor_id INTEGER,
   teams_meeting_link TEXT,
-  notification_sent BOOLEAN DEFAULT FALSE,
+  email_sent BOOLEAN DEFAULT FALSE,
+  whatsapp_sent BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );`
 
@@ -270,8 +272,10 @@ BEGIN
       session_material TEXT,
       session_recording TEXT,
       mentor_id INTEGER,
+      swapped_mentor_id INTEGER,
       teams_meeting_link TEXT,
-      notification_sent BOOLEAN DEFAULT FALSE,
+      email_sent BOOLEAN DEFAULT FALSE,
+      whatsapp_sent BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMPTZ DEFAULT NOW()
     )', table_name);
 END;

@@ -38,8 +38,10 @@ interface ScheduleRow {
   session_material: string | null
   session_recording: string | null
   mentor_id: number | null
+  swapped_mentor_id: number | null
   teams_meeting_link: string | null
-  notification_sent: boolean
+  email_sent: boolean
+  whatsapp_sent: boolean
   created_at: string
 }
 
@@ -89,7 +91,7 @@ const BULK_EDITABLE_FIELDS: { key: keyof ScheduleRow; label: string; type: 'text
   { key: 'time', label: 'Time', type: 'time' },
 ]
 
-// Columns to display (excluding id and notification_sent)
+// Columns to display (excluding id, email_sent, whatsapp_sent)
 const DISPLAY_COLUMNS: { key: keyof ScheduleRow; label: string; width: string }[] = [
   { key: 'date', label: 'Date', width: 'w-28' },
   { key: 'time', label: 'Time', width: 'w-24' },

@@ -200,7 +200,8 @@ export async function POST(request: Request) {
     
     // Helper to get mentor info
     const getMentorInfo = (mentorId: number | null) => {
-      const mentor = mentorMap.get(mentorId || 1) || mentorMap.get(1)
+      // Only look up mentor if we have a valid ID
+      const mentor = mentorId ? mentorMap.get(mentorId) : undefined
       return {
         name: mentor?.Name || 'MentiBY Team',
         email: mentor?.['Email address'] || null
@@ -282,8 +283,8 @@ export async function POST(request: Request) {
           if (!session.time) continue
           
           // Check if we already sent notification (prevent duplicates)
-          if (session.notification_sent) {
-            console.log(`Notification already sent for session ${session.id}`)
+          if (session.email_sent && session.whatsapp_sent) {
+            console.log(`Both notifications already sent for session ${session.id}`)
             continue
           }
 
@@ -318,11 +319,13 @@ export async function POST(request: Request) {
               : 'Check Dashboard'
 
             // Get mentor info for this session
-            const mentorInfo = getMentorInfo(session.mentor_id)
+            // Use swapped_mentor_id if set, otherwise use mentor_id
+            const effectiveMentorId = session.swapped_mentor_id ?? session.mentor_id
+            const mentorInfo = getMentorInfo(effectiveMentorId)
             const mentorName = mentorInfo.name
             const mentorEmail = mentorInfo.email
             
-            console.log(`Session ${session.id} - mentor_id: ${session.mentor_id}, mentorName: ${mentorName}, mentorEmail: ${mentorEmail || 'NOT FOUND'}`)
+            console.log(`Session ${session.id} - mentor_id: ${session.mentor_id}, swapped_mentor_id: ${session.swapped_mentor_id}, effective: ${effectiveMentorId}, mentorName: ${mentorName}, mentorEmail: ${mentorEmail || 'NOT FOUND'}`)
 
             let studentEmailsSent = 0
             let studentWhatsAppSent = 0
@@ -385,9 +388,10 @@ export async function POST(request: Request) {
               await new Promise(resolve => setTimeout(resolve, 600))
             }
 
-            // Send email and WhatsApp to mentor
-            const mentorData = mentorMap.get(session.mentor_id || 1)
-            const mentorPhone = formatPhoneForWhatsApp(mentorData?.['Phone Number'] || mentorData?.Phone || mentorData?.phone)
+            // Send email and WhatsApp to mentor (use swapped mentor if set)
+            // Only get mentor data if we have a valid mentor ID
+            const mentorData = effectiveMentorId ? mentorMap.get(effectiveMentorId) : undefined
+            const mentorPhone = mentorData ? formatPhoneForWhatsApp(mentorData['Phone Number'] || mentorData.Phone || mentorData.phone) : null
             
             if (mentorEmail) {
               console.log(`Sending mentor email to: ${mentorEmail}`)
@@ -454,14 +458,29 @@ export async function POST(request: Request) {
               console.log(`⚠️ No mentor phone found for session ${session.id}`)
             }
 
-            // Mark notification as sent (if column exists)
+            // Mark notifications as sent separately
             try {
-              await supabaseB
-                .from(tableName)
-                .update({ notification_sent: true })
-                .eq('id', session.id)
+              const updateData: Record<string, boolean> = {}
+              
+              // Mark email_sent if at least one email was sent
+              if (studentEmailsSent > 0 || mentorEmail) {
+                updateData.email_sent = true
+              }
+              
+              // Mark whatsapp_sent if at least one WhatsApp was sent
+              if (studentWhatsAppSent > 0 || mentorPhone) {
+                updateData.whatsapp_sent = true
+              }
+              
+              if (Object.keys(updateData).length > 0) {
+                await supabaseB
+                  .from(tableName)
+                  .update(updateData)
+                  .eq('id', session.id)
+              }
             } catch (e) {
               // Column might not exist, that's ok
+              console.log('Could not update notification flags:', e)
             }
 
             results.push({

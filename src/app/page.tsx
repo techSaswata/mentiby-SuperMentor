@@ -15,6 +15,7 @@ import FeedbackTable from '@/components/FeedbackTable'
 import MentibyCallingAgent from '@/components/MentibyCallingAgent'
 import CohortInitiator from '@/components/CohortInitiator'
 import CohortScheduleEditor from '@/components/CohortScheduleEditor'
+import MentorAttendance from '@/components/MentorAttendance'
 
 // Temporary local type definition for FeedbackData
 type FeedbackData = {
@@ -27,7 +28,7 @@ type FeedbackData = {
 }
 
 function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'table' | 'charts' | 'feedback'| 'mbycallingagent' | 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor'>('cohort-initiator')
+  const [activeTab, setActiveTab] = useState<'table' | 'charts' | 'feedback'| 'mbycallingagent' | 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor' | 'mentor-attendance'>('cohort-initiator')
   const [onboardingData, setOnboardingData] = useState<OnboardingData[]>([])
   const [feedbackData, setFeedbackData] = useState<FeedbackData[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -85,7 +86,7 @@ function AdminPanel() {
     }
   }
 
-  const handleTabChange = (tab: 'table' | 'charts' | 'feedback' | 'mbycallingagent' | 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor') => {
+  const handleTabChange = (tab: 'table' | 'charts' | 'feedback' | 'mbycallingagent' | 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor' | 'mentor-attendance') => {
     setActiveTab(tab)
     setIsMobileMenuOpen(false) // Close mobile menu when tab changes
   }
@@ -138,6 +139,8 @@ function AdminPanel() {
         return <CohortInitiator />
       case 'cohort-schedule-editor':
         return <CohortScheduleEditor />
+      case 'mentor-attendance':
+        return <MentorAttendance />
       default:
         return <DataTable data={onboardingData} isLoading={isLoading} onDataUpdate={fetchData} />
     }

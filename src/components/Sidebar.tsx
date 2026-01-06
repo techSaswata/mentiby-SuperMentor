@@ -1,13 +1,13 @@
 'use client'
 
-import { Database, PieChart, Users, LogOut, User, ChevronUp, Upload, Trophy, ClipboardList, MessageSquare, Rocket, Edit3 } from 'lucide-react'
+import { Database, PieChart, Users, LogOut, User, ChevronUp, Upload, Trophy, ClipboardList, MessageSquare, Rocket, Edit3, UserCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/contexts/AuthContext'
 import { useState, useEffect } from 'react'
 
 interface SidebarProps {
-  activeTab: 'table' | 'charts' | 'feedback' | 'mbycallingagent'| 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor'
-  onTabChange: (tab: 'table' | 'charts' | 'feedback' | 'mbycallingagent'| 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor') => void
+  activeTab: 'table' | 'charts' | 'feedback' | 'mbycallingagent'| 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor' | 'mentor-attendance'
+  onTabChange: (tab: 'table' | 'charts' | 'feedback' | 'mbycallingagent'| 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor' | 'mentor-attendance') => void
 }
 
 export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
@@ -47,14 +47,32 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       label: 'Cohort Initiator',
       icon: Rocket,
       description: 'Create new cohort schedules',
-      gradient: 'gradient-orange'
+      gradient: 'bg-gradient-to-r from-orange-500 via-amber-500 to-yellow-500',
+      glow: 'shadow-lg shadow-orange-500/50'
     },
     {
       id: 'cohort-schedule-editor' as const,
       label: 'Cohort Schedule Editor',
       icon: Edit3,
       description: 'Edit existing cohort schedules',
-      gradient: 'gradient-blue'
+      gradient: 'bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500',
+      glow: 'shadow-lg shadow-blue-500/50'
+    },
+    {
+      id: 'records' as const,
+      label: 'Student Attendance',
+      icon: ClipboardList,
+      description: 'View student attendance stats',
+      gradient: 'bg-gradient-to-r from-purple-500 via-fuchsia-500 to-pink-500',
+      glow: 'shadow-lg shadow-purple-500/50'
+    },
+    {
+      id: 'mentor-attendance' as const,
+      label: 'Mentor Attendance',
+      icon: UserCheck,
+      description: 'Track mentor attendance',
+      gradient: 'bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500',
+      glow: 'shadow-lg shadow-cyan-500/50'
     }
   ]
 
@@ -92,7 +110,7 @@ export default function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                     "w-full p-4 sm:p-5 rounded-xl sm:rounded-2xl text-left transition-all duration-300 group relative overflow-hidden",
                     "hover:scale-[1.02] hover:shadow-2xl",
                     isActive
-                      ? `${item.gradient} text-white shadow-2xl scale-[1.02] glow-purple`
+                      ? `${item.gradient} ${item.glow} text-white shadow-2xl scale-[1.02]`
                       : "bg-muted/30 text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   )}
                 >
