@@ -221,32 +221,19 @@ async function getCohortTables(supabaseB: any): Promise<string[]> {
     const { data, error } = await supabaseB.rpc('get_schedule_tables')
     
     if (error) {
-      // Fallback: If RPC doesn't exist, try querying directly
-      console.log('RPC not available, using fallback table list')
-      // Return known tables as fallback
-      const knownTables = [
-        'basic1_0_schedule',
-        'basic1_1_schedule',
-        'basic2_0_schedule',
-        'basic3_0_schedule',
-        'placement2_0_schedule',
-        'placement3_0_schedule'
-      ]
-      return knownTables
+      // Fallback: If RPC doesn't exist, log and return empty
+      // The RPC function should be created in Database B for dynamic table discovery
+      console.log('RPC get_schedule_tables not available. Please create it in Database B.')
+      console.log('RPC Error:', error.message)
+      // Return empty array - RPC is required for proper operation
+      return []
     }
     
     return data?.map((row: any) => row.table_name) || []
   } catch (err) {
     console.error('Error fetching cohort tables:', err)
-    // Fallback to known tables
-    return [
-      'basic1_0_schedule',
-      'basic1_1_schedule', 
-      'basic2_0_schedule',
-      'basic3_0_schedule',
-      'placement2_0_schedule',
-      'placement3_0_schedule'
-    ]
+    // Return empty - RPC is required for proper operation
+    return []
   }
 }
 

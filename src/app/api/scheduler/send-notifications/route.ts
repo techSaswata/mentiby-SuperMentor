@@ -232,14 +232,16 @@ export async function POST(request: Request) {
       }
     }
     
-    // Fallback if no cohorts found
+    // If no cohorts found in onboarding, return early
     if (Object.keys(cohortMapping).length === 0) {
-      console.log('No cohorts found in onboarding, using fallback')
-      Object.assign(cohortMapping, {
-        'Basic 1.0': 'basic1_0_schedule',
-        'Basic 1.1': 'basic1_1_schedule',
-        'Basic 2.0': 'basic2_0_schedule',
-        'Placement 2.0': 'placement2_0_schedule'
+      console.log('No active cohorts found in onboarding table')
+      return NextResponse.json({
+        success: true,
+        message: 'No active cohorts found in onboarding table',
+        emailsSent: 0,
+        mentorEmailsSent: 0,
+        whatsAppSent: 0,
+        mentorWhatsAppSent: 0
       })
     }
     

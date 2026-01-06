@@ -791,13 +791,25 @@ export default function CohortScheduleEditor() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Get next session's date as upper limit
-    const nextSession = getNextSession(session)
+    // Find the next session BY DATE (not by week/session number)
+    // This handles contests which may have different date patterns
+    const sessionsWithDates = scheduleData
+      .filter(s => s.id !== selectedSessionId && s.date)
+      .map(s => ({
+        ...s,
+        dateObj: new Date(String(s.date).split('T')[0] + 'T12:00:00')
+      }))
+      .filter(s => s.dateObj > sessionDate)
+      .sort((a, b) => a.dateObj.getTime() - b.dateObj.getTime())
+    
+    const nextSessionByDate = sessionsWithDates[0]
+    
     let maxDate: Date
-    if (nextSession && nextSession.date) {
-      maxDate = new Date(String(nextSession.date).split('T')[0] + 'T12:00:00')
+    if (nextSessionByDate) {
+      maxDate = new Date(nextSessionByDate.dateObj)
       maxDate.setDate(maxDate.getDate() - 1)
     } else {
+      // No session after this one, allow up to 30 days
       maxDate = new Date(sessionDate)
       maxDate.setDate(maxDate.getDate() + 30)
     }
@@ -834,13 +846,25 @@ export default function CohortScheduleEditor() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
 
-    // Get previous session's date as lower limit
-    const prevSession = getPreviousSession(session)
+    // Find the previous session BY DATE (not by week/session number)
+    // This handles contests which may have different date patterns
+    const sessionsWithDates = scheduleData
+      .filter(s => s.id !== selectedSessionId && s.date)
+      .map(s => ({
+        ...s,
+        dateObj: new Date(String(s.date).split('T')[0] + 'T12:00:00')
+      }))
+      .filter(s => s.dateObj < sessionDate)
+      .sort((a, b) => b.dateObj.getTime() - a.dateObj.getTime()) // Sort descending to get latest first
+    
+    const prevSessionByDate = sessionsWithDates[0]
+    
     let minDate: Date
-    if (prevSession && prevSession.date) {
-      minDate = new Date(String(prevSession.date).split('T')[0] + 'T12:00:00')
+    if (prevSessionByDate) {
+      minDate = new Date(prevSessionByDate.dateObj)
       minDate.setDate(minDate.getDate() + 1)
     } else {
+      // No session before this one, allow up to 30 days back
       minDate = new Date(sessionDate)
       minDate.setDate(minDate.getDate() - 30)
     }

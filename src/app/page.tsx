@@ -27,7 +27,7 @@ type FeedbackData = {
 }
 
 function AdminPanel() {
-  const [activeTab, setActiveTab] = useState<'table' | 'charts' | 'feedback'| 'mbycallingagent' | 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor'>('table')
+  const [activeTab, setActiveTab] = useState<'table' | 'charts' | 'feedback'| 'mbycallingagent' | 'attendance' | 'xp' | 'records' | 'cohort-initiator' | 'cohort-schedule-editor'>('cohort-initiator')
   const [onboardingData, setOnboardingData] = useState<OnboardingData[]>([])
   const [feedbackData, setFeedbackData] = useState<FeedbackData[]>([])
   const [isLoading, setIsLoading] = useState(true)

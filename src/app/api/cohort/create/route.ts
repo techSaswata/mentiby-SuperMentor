@@ -55,6 +55,34 @@ const getDayName = (date: Date): string => {
   return days[date.getDay()]
 }
 
+// Helper function to calculate date for CONTEST sessions
+// Contests follow Monday, Tuesday, Wednesday... pattern within each week
+// 1st contest of week = Monday, 2nd = Tuesday, 3rd = Wednesday, etc.
+// When week changes, reset to Monday
+const calculateContestDate = (
+  startDate: Date,
+  weekNumber: number,
+  sessionNumber: number
+): Date => {
+  // Find the Monday of the start week
+  const startDayIndex = startDate.getDay() // 0 = Sunday, 1 = Monday, etc.
+  const daysToMonday = startDayIndex === 0 ? 1 : (startDayIndex === 1 ? 0 : 8 - startDayIndex)
+  
+  // Calculate the Monday of week 1 (the first Monday on or after start date)
+  const firstMonday = new Date(startDate)
+  firstMonday.setDate(startDate.getDate() + daysToMonday)
+  
+  // Calculate the Monday of the target week
+  const targetMonday = new Date(firstMonday)
+  targetMonday.setDate(firstMonday.getDate() + (weekNumber - 1) * 7)
+  
+  // Add days based on session number (session 1 = Monday, session 2 = Tuesday, etc.)
+  const contestDate = new Date(targetMonday)
+  contestDate.setDate(targetMonday.getDate() + (sessionNumber - 1))
+  
+  return contestDate
+}
+
 export async function POST(request: Request) {
   try {
     const body = await request.json()
@@ -158,13 +186,27 @@ CREATE TABLE IF NOT EXISTS public.${tableName} (
 
       // Calculate date if week_number and session_number are available
       if (record.week_number && record.session_number) {
-        sessionDate = calculateSessionDate(
-          startDateObj,
-          record.week_number,
-          record.session_number,
-          day1,
-          day2
-        )
+        const isContest = record.session_type?.toLowerCase() === 'contest'
+        
+        if (isContest) {
+          // Special logic for contests: Monday, Tuesday, Wednesday... pattern
+          // 1st contest of week = Monday, 2nd = Tuesday, etc.
+          // Reset to Monday when week changes
+          sessionDate = calculateContestDate(
+            startDateObj,
+            record.week_number,
+            record.session_number
+          )
+        } else {
+          // Normal sessions use day1/day2 pattern
+          sessionDate = calculateSessionDate(
+            startDateObj,
+            record.week_number,
+            record.session_number,
+            day1,
+            day2
+          )
+        }
         
         if (sessionDate) {
           dayName = getDayName(sessionDate)
